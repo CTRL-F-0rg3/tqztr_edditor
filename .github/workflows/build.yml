@@ -34,7 +34,7 @@ jobs:
           sudo apt-get install -y \
             build-essential cmake pkg-config \
             qt6-base-dev libqscintilla2-qt6-dev \
-            qtermwidget6-dev default-jdk
+            default-jdk
 
       - name: Configure & Build (Linux)
         if: matrix.platform == 'linux'
@@ -47,17 +47,17 @@ jobs:
         if: matrix.platform == 'macos'
         run: |
           brew install cmake qt qscintilla2 openjdk
+          echo "JAVA_HOME=$(brew --prefix openjdk)" >> $GITHUB_ENV
+          echo "$(brew --prefix qt)/bin" >> $GITHUB_PATH
 
       - name: Configure & Build (macOS)
         if: matrix.platform == 'macos'
         run: |
-          export JAVA_HOME="$(brew --prefix openjdk)"
           cmake -S . -B build \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_PREFIX_PATH="$(brew --prefix qt)" \
+            -DCMAKE_PREFIX_PATH="$(brew --prefix qt);$(brew --prefix qscintilla2)" \
             -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0
           cmake --build build -j$(sysctl -n hw.ncpu)
-          # opcjonalnie bundluj frameworki
           if [ -d build/tqztr_editor.app ]; then
             "$(brew --prefix qt)/bin/macdeployqt" build/tqztr_editor.app
           fi
@@ -85,7 +85,6 @@ jobs:
             -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake" `
             -DVCPKG_TARGET_TRIPLET=x64-windows
           cmake --build build --config Release
-          # skopiuj DLL-e obok exe
           Copy-Item "${{ github.workspace }}/vcpkg/installed/x64-windows/bin/*.dll" build/Release/ -ErrorAction SilentlyContinue
 
       # ========== PAKOWANIE ==========
