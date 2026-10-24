@@ -15,3 +15,7 @@ vcpkg_installed/
 .idea/
 *.user
 EOF
+build/
+build-*/
+dist/
+*.jar
