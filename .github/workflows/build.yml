@@ -1,0 +1,123 @@
+name: Build
+
+on:
+  push:
+    branches: [main, stabilizing]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            platform: linux
+          - os: windows-latest
+            platform: windows
+          - os: macos-14
+            platform: macos
+
+    runs-on: ${{ matrix.os }}
+    name: build-${{ matrix.platform }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # ========== LINUX ==========
+      - name: Install deps (Linux)
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential cmake pkg-config \
+            qt6-base-dev libqscintilla2-qt6-dev \
+            qtermwidget6-dev default-jdk
+
+      - name: Configure & Build (Linux)
+        if: matrix.platform == 'linux'
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build -j$(nproc)
+
+      # ========== macOS ==========
+      - name: Install deps (macOS)
+        if: matrix.platform == 'macos'
+        run: |
+          brew install cmake qt qscintilla2 openjdk
+
+      - name: Configure & Build (macOS)
+        if: matrix.platform == 'macos'
+        run: |
+          export JAVA_HOME="$(brew --prefix openjdk)"
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH="$(brew --prefix qt)" \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0
+          cmake --build build -j$(sysctl -n hw.ncpu)
+          # opcjonalnie bundluj frameworki
+          if [ -d build/tqztr_editor.app ]; then
+            "$(brew --prefix qt)/bin/macdeployqt" build/tqztr_editor.app
+          fi
+
+      # ========== WINDOWS ==========
+      - name: Install Qt + QScintilla (Windows, vcpkg cache)
+        if: matrix.platform == 'windows'
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgDirectory: '${{ github.workspace }}/vcpkg'
+          vcpkgGitCommitId: 'a42af01b72c28a8e1d7b48107b33e4f286a55ef6'
+
+      - name: Install packages (Windows)
+        if: matrix.platform == 'windows'
+        run: |
+          vcpkg install qtbase qscintilla --triplet x64-windows
+
+      - name: Configure & Build (Windows)
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: |
+          $env:JAVA_HOME = "$env:JAVA_HOME_21_X64"
+          cmake -S . -B build `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake" `
+            -DVCPKG_TARGET_TRIPLET=x64-windows
+          cmake --build build --config Release
+          # skopiuj DLL-e obok exe
+          Copy-Item "${{ github.workspace }}/vcpkg/installed/x64-windows/bin/*.dll" build/Release/ -ErrorAction SilentlyContinue
+
+      # ========== PAKOWANIE ==========
+      - name: Package (Linux)
+        if: matrix.platform == 'linux'
+        run: |
+          mkdir -p dist/tqztr-editor-linux
+          cp build/tqztr_editor dist/tqztr-editor-linux/
+          cp -r src scripts CMakeLists.txt README.md dist/tqztr-editor-linux/ 2>/dev/null || true
+          cd dist && tar -czf tqztr-editor-linux.tar.gz tqztr-editor-linux
+
+      - name: Package (macOS)
+        if: matrix.platform == 'macos'
+        run: |
+          mkdir -p dist
+          if [ -d build/tqztr_editor.app ]; then
+            ditto -c -k --sequesterRsrc --keepParent build/tqztr_editor.app dist/tqztr-editor-macos.zip
+          else
+            cp build/tqztr_editor dist/
+            cd dist && zip tqztr-editor-macos.zip tqztr_editor
+          fi
+
+      - name: Package (Windows)
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Compress-Archive -Path build/Release/* -DestinationPath dist/tqztr-editor-windows.zip
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: tqztr-editor-${{ matrix.platform }}
+          path: dist/*
+          retention-days: 30

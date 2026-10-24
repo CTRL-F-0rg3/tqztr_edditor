@@ -1,0 +1,17 @@
+cd ~/project/editorkodu
+cat >> .gitignore << 'EOF'
+# Build
+build/
+build-*/
+dist/
+vcpkg/
+vcpkg_installed/
+
+# Plugins (zbudowane)
+*.jar
+
+# IDE
+.vscode/
+.idea/
+*.user
+EOF
