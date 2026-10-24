@@ -19,3 +19,11 @@ build/
 build-*/
 dist/
 *.jar
+build/
+build-*/
+dist/
+*.jar
+vcpkg/
+vcpkg_installed/
+.vscode/
+.idea/
