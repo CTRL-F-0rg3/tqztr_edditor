@@ -18,47 +18,36 @@ find_package(Qt6 REQUIRED COMPONENTS Widgets)
 find_package(PkgConfig REQUIRED)
 find_package(JNI REQUIRED)
 
-# ===== QScintilla — uniwersalne wyszukiwanie =====
-# 1. Spróbuj znaleźć przez find_package (Windows/vcpkg, macOS/Homebrew)
-find_package(QScintilla CONFIG QUIET)
-if(QScintilla_FOUND)
-    set(QSCINTILLA_LIB QScintilla::QScintilla)
-    set(QSCINTILLA_INCLUDE "")
-    message(STATUS "QScintilla found via find_package (QScintilla)")
-else()
-    find_package(qscintilla2 CONFIG QUIET)
-    if(qscintilla2_FOUND)
-        set(QSCINTILLA_LIB qscintilla2::qscintilla2)
-        set(QSCINTILLA_INCLUDE "")
-        message(STATUS "QScintilla found via find_package (qscintilla2)")
-    else()
-        # 2. Fallback: ręczne szukanie (Linux/Debian/Arch, macOS bez configu)
-        find_library(QSCINTILLA_LIB
-            NAMES
-                qscintilla2_qt6
-                qscintilla2-qt6
-                qscintilla2
-                QScintilla
-            PATHS
-                /usr/lib
-                /usr/local/lib
-                /opt/homebrew/opt/qscintilla2/lib
-                /opt/homebrew/lib
-        )
-        find_path(QSCINTILLA_INCLUDE
-            NAMES Qsci/qsciscintilla.h
-            PATHS
-                /usr/include/qt6
-                /usr/local/include/qt6
-                /opt/homebrew/opt/qscintilla2/include/qt6
-                /opt/homebrew/include/qt6
-        )
-        if(NOT QSCINTILLA_LIB OR NOT QSCINTILLA_INCLUDE)
-            message(FATAL_ERROR "QScintilla not found. Install: linux='qscintilla-qt6', macos='brew install qscintilla2', windows='vcpkg install qscintilla'")
-        endif()
-        message(STATUS "QScintilla found via manual find")
-    endif()
+# ===== QScintilla =====
+find_library(QSCINTILLA_LIB
+    NAMES
+        qscintilla2_qt6      # Linux (Debian/Ubuntu/Arch)
+        qscintilla2-qt6      # Linux (niektóre dystrybucje)
+        qscintilla2          # macOS (Homebrew), Windows (vcpkg)
+        qsciscintilla        # Windows (vcpkg, alternatywna nazwa)
+    PATHS
+        /usr/lib
+        /usr/lib/x86_64-linux-gnu
+        /usr/local/lib
+        /opt/homebrew/lib
+        /opt/homebrew/opt/qscintilla2/lib
+        ${VCPKG_INSTALLED_DIR}/x64-windows/lib
+)
+find_path(QSCINTILLA_INCLUDE
+    NAMES Qsci/qsciscintilla.h
+    PATHS
+        /usr/include/qt6
+        /usr/include/x86_64-linux-gnu/qt6
+        /usr/local/include/qt6
+        /opt/homebrew/include/qt6
+        /opt/homebrew/opt/qscintilla2/include/qt6
+        ${VCPKG_INSTALLED_DIR}/x64-windows/include
+)
+if(NOT QSCINTILLA_LIB OR NOT QSCINTILLA_INCLUDE)
+    message(FATAL_ERROR "QScintilla not found. Install: linux='sudo apt install libqscintilla2-qt6-dev', macos='brew install qscintilla2', windows='vcpkg install qscintilla'")
 endif()
+message(STATUS "QScintilla library: ${QSCINTILLA_LIB}")
+message(STATUS "QScintilla include: ${QSCINTILLA_INCLUDE}")
 
 # ===== qtermwidget (tylko Linux, opcjonalnie) =====
 if(TQZTR_PLATFORM STREQUAL "linux")

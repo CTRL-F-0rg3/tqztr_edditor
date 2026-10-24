@@ -62,7 +62,9 @@ jobs:
           cmake -S . -B build \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_PREFIX_PATH="$(brew --prefix qt);$(brew --prefix qscintilla2)" \
-            -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0 \
+            -DJAVA_HOME="$JAVA_HOME" \
+            -DJAVA_AWT_LIBRARY="$JAVA_HOME/libexec/openjdk.jdk/Contents/Home/lib"
           cmake --build build -j$(sysctl -n hw.ncpu)
 
       # ========== WINDOWS ==========
@@ -72,6 +74,8 @@ jobs:
         with:
           vcpkgDirectory: '${{ github.workspace }}/vcpkg'
           vcpkgGitCommitId: 'a42af01b72c28a8e1d7b48107b33e4f286a55ef6'
+        env:
+          VCPKG_BINARY_SOURCES: "clear"
 
       - name: Install packages (Windows)
         if: matrix.platform == 'windows'
@@ -86,7 +90,8 @@ jobs:
           cmake -S . -B build `
             -DCMAKE_BUILD_TYPE=Release `
             -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake" `
-            -DVCPKG_TARGET_TRIPLET=x64-windows
+            -DVCPKG_TARGET_TRIPLET=x64-windows `
+            -DVCPKG_INSTALLED_DIR="${{ github.workspace }}/vcpkg/installed"
           cmake --build build --config Release
 
       # ========== PAKOWANIE ==========
