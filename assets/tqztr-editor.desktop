@@ -1,0 +1,15 @@
+#!/usr/bin/env xdg-open
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=TQZTR Editor
+GenericName=Code Editor
+Comment=Lightweight, customizable code editor for massive projects
+Exec=tqztr_editor %F
+Icon=tqztr-editor
+Terminal=false
+Categories=Development;IDE;TextEditor;Qt;
+Keywords=code;editor;programming;development;ide;tqztr;
+StartupNotify=true
+StartupWMClass=tqztr_editor
+MimeType=text/plain;text/x-c;text/x-c++;text/x-rust;text/x-python;application/json;text/markdown;
