@@ -51,6 +51,7 @@ void EditorWidget::setupMargins() {
     QFont mf = font();
     mf.setPointSize(10);
 
+    // Margin 0: numery linii
     setMarginType(0, QsciScintilla::NumberMargin);
     setMarginWidth(0, "000000");
     setMarginLineNumbers(0, true);
@@ -58,10 +59,31 @@ void EditorWidget::setupMargins() {
     setMarginsForegroundColor(QColor(0x45, 0x47, 0x5a));
     setMarginsFont(mf);
 
+    // Margin 1: folding
     setMarginType(1, QsciScintilla::SymbolMargin);
     setMarginWidth(1, 14);
     setFolding(QsciScintilla::BoxedTreeFoldStyle, 1);
     setFoldMarginColors(QColor(0x00, 0x00, 0x00), QColor(0x00, 0x00, 0x00));
+
+    // Margin 2: diagnostyka (błędy z clang, wtyczki itd.)
+    setMarginType(2, QsciScintilla::SymbolMargin);
+    setMarginWidth(2, 12);
+    setMarginBackgroundColor(2, QColor(0x00, 0x00, 0x00));
+
+    // 20 = error (czerwony)
+    markerDefine(QsciScintilla::Circle, 20);
+    setMarkerBackgroundColor(QColor(0xff, 0x2d, 0x55), 20);
+    setMarkerForegroundColor(QColor(0xff, 0x2d, 0x55), 20);
+
+    // 21 = warning (żółty)
+    markerDefine(QsciScintilla::Circle, 21);
+    setMarkerBackgroundColor(QColor(0xff, 0xb0, 0x00), 21);
+    setMarkerForegroundColor(QColor(0xff, 0xb0, 0x00), 21);
+
+    // 22 = note (niebieski)
+    markerDefine(QsciScintilla::Circle, 22);
+    setMarkerBackgroundColor(QColor(0x00, 0xb0, 0xff), 22);
+    setMarkerForegroundColor(QColor(0x00, 0xb0, 0xff), 22);
 }
 
 void EditorWidget::setupBehavior() {
@@ -147,13 +169,11 @@ void EditorWidget::paintEvent(QPaintEvent* e) {
     QsciScintilla::paintEvent(e);
 
     // 2. Nakładamy obrazek na viewport przy niskim opacity.
-    //    Tekst pozostaje nietknięty (bo tekst już jest pod spodem),
-    //    obrazek widoczny jako delikatna mgiełka w tle edytora.
     if (m_bgPixmap.isNull()) return;
 
     QPainter p(viewport());
     p.setRenderHint(QPainter::SmoothPixmapTransform, true);
-    p.setOpacity(0.14);   // 14% — widoczne, ale nie przeszkadza w czytaniu
+    p.setOpacity(0.14);
 
     QPixmap scaled = m_bgPixmap.scaled(
         viewport()->size(),
@@ -168,7 +188,7 @@ void EditorWidget::paintEvent(QPaintEvent* e) {
 void EditorWidget::resizeEvent(QResizeEvent* e) {
     QsciScintilla::resizeEvent(e);
 
-    const int R = 10;   // <-- większy promień, żeby było widać
+    const int R = 10;
     const int W = width();
     const int H = height();
     if (W < 2 * R || H < 2 * R) return;
